@@ -28,6 +28,7 @@ interface FormValues {
   hourlyRate: number; // Добавляем почасовую ставку
   notes: string;
   didNotWork: boolean; // Добавляем флаг "Не вышел на работу"
+  dayOff: boolean; // Добавляем флаг "Выходной"
 }
 
 export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
@@ -35,6 +36,7 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
   const queryClient = useQueryClient();
   const [currentEntryDate, setCurrentEntryDate] = useState<string>('');
   const [didNotWork, setDidNotWork] = useState(false);
+  const [dayOff, setDayOff] = useState(false);
   
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
@@ -43,19 +45,33 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
       endTime: '18:00',
       hourlyRate: 190, // Значение по умолчанию для почасовой ставки в CZK
       notes: '',
-      didNotWork: false
+      didNotWork: false,
+      dayOff: false
     }
   });
   
-  // Отслеживаем изменение флага "Не вышел на работу"
+  // Отслеживаем изменение флагов "Не вышел на работу" и "Выходной"
   useEffect(() => {
     const subscription = watch((value, { name }) => {
       if (name === 'didNotWork') {
         setDidNotWork(!!value.didNotWork);
+        // Если включили "Не вышел на работу", выключаем "Выходной"
+        if (!!value.didNotWork && dayOff) {
+          setValue('dayOff', false);
+          setDayOff(false);
+        }
+      }
+      if (name === 'dayOff') {
+        setDayOff(!!value.dayOff);
+        // Если включили "Выходной", выключаем "Не вышел на работу"
+        if (!!value.dayOff && didNotWork) {
+          setValue('didNotWork', false);
+          setDidNotWork(false);
+        }
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch]);
+  }, [watch, setValue, didNotWork, dayOff]);
   
   const { data: user } = useQuery<User>({
     queryKey: ['/api/user'],
@@ -100,14 +116,31 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
     const formattedDate = `${data.date}T12:00:00.000Z`;
     setCurrentEntryDate(formattedDate);
     
-    // Если "Не вышел на работу", устанавливаем специальные значения
+    // Определяем специальные значения в зависимости от выбранных флагов
+    let notesValue = data.notes;
+    let startTimeValue = data.startTime;
+    let endTimeValue = data.endTime;
+    let hourlyRateValue = data.hourlyRate;
+    
+    if (data.didNotWork) {
+      startTimeValue = "00:00";
+      endTimeValue = "00:00";
+      hourlyRateValue = 0;
+      notesValue = "Nešel jsem do práce.";
+    } else if (data.dayOff) {
+      startTimeValue = "00:00";
+      endTimeValue = "00:00";
+      hourlyRateValue = 0;
+      notesValue = "Volný den";
+    }
+    
     const entryData = {
       userId: user.id,
       date: formattedDate, // Отправляем как строку в формате ISO, Zod преобразует на стороне сервера
-      startTime: data.didNotWork ? "00:00" : data.startTime,
-      endTime: data.didNotWork ? "00:00" : data.endTime,
-      hourlyRate: data.didNotWork ? 0 : data.hourlyRate,
-      notes: data.didNotWork ? "Nešel jsem do práce." : data.notes,
+      startTime: startTimeValue,
+      endTime: endTimeValue,
+      hourlyRate: hourlyRateValue,
+      notes: notesValue,
     };
     
     console.log('Отправка данных:', entryData);
@@ -186,6 +219,28 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
             </motion.div>
             
             <motion.div
+              custom={1.5}
+              initial="hidden"
+              animate="visible"
+              variants={formAnimation}
+              key="dayOff-field"
+              className="flex items-center space-x-2"
+            >
+              <Checkbox 
+                id="dayOff" 
+                checked={dayOff}
+                onCheckedChange={(checked) => {
+                  setValue('dayOff', checked === true);
+                  setDayOff(checked === true);
+                }}
+                {...register('dayOff')}
+              />
+              <Label htmlFor="dayOff" className="text-muted-foreground font-medium">
+                Выходной
+              </Label>
+            </motion.div>
+            
+            <motion.div
               custom={2}
               initial="hidden"
               animate="visible"
@@ -196,7 +251,7 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
               <Textarea 
                 id="notes" 
                 className="bg-background border-input h-20 resize-none" 
-                disabled={didNotWork}
+                disabled={didNotWork || dayOff}
                 {...register('notes')} 
               />
             </motion.div>
@@ -215,8 +270,8 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                   id="startTime" 
                   type="time" 
                   className="bg-background border-input" 
-                  disabled={didNotWork}
-                  {...register('startTime', { required: !didNotWork })} 
+                  disabled={didNotWork || dayOff}
+                  {...register('startTime', { required: !didNotWork && !dayOff })} 
                 />
               </div>
               <div>
@@ -225,8 +280,8 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                   id="endTime" 
                   type="time" 
                   className="bg-background border-input" 
-                  disabled={didNotWork}
-                  {...register('endTime', { required: !didNotWork })} 
+                  disabled={didNotWork || dayOff}
+                  {...register('endTime', { required: !didNotWork && !dayOff })} 
                 />
               </div>
             </motion.div>
@@ -245,9 +300,9 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                 className="bg-background border-input" 
                 min="0"
                 step="10"
-                disabled={didNotWork}
+                disabled={didNotWork || dayOff}
                 {...register('hourlyRate', { 
-                  required: !didNotWork,
+                  required: !didNotWork && !dayOff,
                   valueAsNumber: true, 
                   min: 0 
                 })} 
