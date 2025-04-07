@@ -18,21 +18,17 @@ export default function Profile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading } = useQuery<User>({
     queryKey: ['/api/user'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
   });
   
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<Partial<User>>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<Partial<User>>({
     defaultValues: {
       fullName: user?.fullName || '',
       email: user?.email || '',
       phone: user?.phone || '',
       position: user?.position || '',
-      workHoursPerDay: user?.workHoursPerDay || 8,
-      breakMinutes: user?.breakMinutes || 60,
-      autoBreak: user?.autoBreak || true,
-      workDays: user?.workDays || '1,2,3,4,5',
     }
   });
   
@@ -43,10 +39,6 @@ export default function Profile() {
       setValue('email', user.email || '');
       setValue('phone', user.phone || '');
       setValue('position', user.position || '');
-      setValue('workHoursPerDay', user.workHoursPerDay);
-      setValue('breakMinutes', user.breakMinutes);
-      setValue('autoBreak', user.autoBreak);
-      setValue('workDays', user.workDays);
     }
   }, [user, setValue]);
   
@@ -71,25 +63,6 @@ export default function Profile() {
   const onSubmit = (data: Partial<User>) => {
     updateProfileMutation.mutate(data);
   };
-  
-  // Parse and handle work days
-  const workDays = watch('workDays')?.split(',').map(Number) || [];
-  
-  const toggleWorkDay = (day: number) => {
-    const currentDays = [...workDays];
-    
-    if (currentDays.includes(day)) {
-      const newDays = currentDays.filter(d => d !== day);
-      setValue('workDays', newDays.join(','));
-    } else {
-      currentDays.push(day);
-      // Sort days numerically
-      currentDays.sort((a, b) => a - b);
-      setValue('workDays', currentDays.join(','));
-    }
-  };
-  
-  const autoBreak = watch('autoBreak');
   
   if (isLoading) {
     return (
@@ -152,110 +125,6 @@ export default function Profile() {
                   type="text" 
                   className="w-full bg-background border-input" 
                   {...register('position')}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Work Settings */}
-        <Card className="bg-card rounded-lg shadow-lg p-4 mb-4">
-          <CardContent className="p-0">
-            <h3 className="text-lg font-medium mb-4">Налаштування роботи</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="workHoursPerDay" className="text-muted-foreground text-sm mb-1">Робочі години за день</Label>
-                <Input 
-                  id="workHoursPerDay" 
-                  type="number" 
-                  className="w-full bg-background border-input" 
-                  min={1}
-                  max={24}
-                  {...register('workHoursPerDay', { valueAsNumber: true })}
-                />
-              </div>
-              
-              <div>
-                <Label className="text-muted-foreground text-sm mb-1">Робочі дні</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    type="button"
-                    size="sm"
-                    className={workDays.includes(1) ? "bg-primary text-white" : "bg-background border-input text-muted-foreground"}
-                    onClick={() => toggleWorkDay(1)}
-                  >
-                    Пн
-                  </Button>
-                  <Button 
-                    type="button"
-                    size="sm"
-                    className={workDays.includes(2) ? "bg-primary text-white" : "bg-background border-input text-muted-foreground"}
-                    onClick={() => toggleWorkDay(2)}
-                  >
-                    Вт
-                  </Button>
-                  <Button 
-                    type="button"
-                    size="sm"
-                    className={workDays.includes(3) ? "bg-primary text-white" : "bg-background border-input text-muted-foreground"}
-                    onClick={() => toggleWorkDay(3)}
-                  >
-                    Ср
-                  </Button>
-                  <Button 
-                    type="button"
-                    size="sm"
-                    className={workDays.includes(4) ? "bg-primary text-white" : "bg-background border-input text-muted-foreground"}
-                    onClick={() => toggleWorkDay(4)}
-                  >
-                    Чт
-                  </Button>
-                  <Button 
-                    type="button"
-                    size="sm"
-                    className={workDays.includes(5) ? "bg-primary text-white" : "bg-background border-input text-muted-foreground"}
-                    onClick={() => toggleWorkDay(5)}
-                  >
-                    Пт
-                  </Button>
-                  <Button 
-                    type="button"
-                    size="sm"
-                    className={workDays.includes(6) ? "bg-primary text-white" : "bg-background border-input text-muted-foreground"}
-                    onClick={() => toggleWorkDay(6)}
-                  >
-                    Сб
-                  </Button>
-                  <Button 
-                    type="button"
-                    size="sm"
-                    className={workDays.includes(7) ? "bg-primary text-white" : "bg-background border-input text-muted-foreground"}
-                    onClick={() => toggleWorkDay(7)}
-                  >
-                    Нд
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="breakMinutes" className="text-muted-foreground text-sm mb-1">Перерва на обід (хв)</Label>
-                <Input 
-                  id="breakMinutes" 
-                  type="number" 
-                  className="w-full bg-background border-input" 
-                  min={0}
-                  max={180}
-                  {...register('breakMinutes', { valueAsNumber: true })}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <Label htmlFor="autoBreak">Автоматичне врахування перерви</Label>
-                <Switch 
-                  id="autoBreak" 
-                  checked={autoBreak} 
-                  onCheckedChange={(checked) => setValue('autoBreak', checked)}
                 />
               </div>
             </div>
