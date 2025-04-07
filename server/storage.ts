@@ -8,12 +8,20 @@ import {
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 import session from "express-session";
+import MemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import pkg from "pg";
 const { Pool } = pkg;
 
+// Create memory store as a fallback
+const MemoryStoreSession = MemoryStore(session);
+
+// Create PostgreSQL pool with more robust connection handling
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 5, // Limit maximum connections
+  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+  connectionTimeoutMillis: 5000, // Connection timeout
 });
 
 const PostgresSessionStore = connectPg(session);
@@ -48,10 +56,23 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
   
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
-    });
+    try {
+      // Try to use PostgreSQL for session storage
+      this.sessionStore = new PostgresSessionStore({
+        pool,
+        createTableIfMissing: true,
+        tableName: 'session', // Be explicit about table name
+        ttl: 86400000, // 1 day in milliseconds
+        errorLog: console.error
+      });
+      console.log("Successfully initialized PostgreSQL session store");
+    } catch (error) {
+      // Fall back to memory store if PostgreSQL session store fails
+      console.error("Failed to initialize PostgreSQL session store, using memory store instead:", error);
+      this.sessionStore = new MemoryStoreSession({
+        checkPeriod: 86400000 // 1 day cleanup period
+      });
+    }
   }
   
   async initializeDefaultUser(): Promise<void> {
