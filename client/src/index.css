@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 88%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 88%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 88%;
+    --primary: 122.4 39.4% 49.2%;
+    --primary-foreground: 0 0% 100%;
+    --primary-dark: 123 40% 39%;
+    --primary-light: 122 34% 64%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 88%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 73%;
+    --accent: 123 40% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 30%;
+    --input: 0 0% 30%;
+    --ring: 122.4 39.4% 49.2%;
+    --weekend: 200 18% 18%;
+    --radius: 0.5rem;
+    
+    --chart-1: 122.4 39.4% 49.2%;
+    --chart-2: 123 40% 39%;
+    --chart-3: 240 5.9% 10%;
+    --chart-4: 240 3.7% 15.9%;
+    --chart-5: 240 5.2% 33.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}

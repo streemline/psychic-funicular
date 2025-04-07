@@ -1,0 +1,309 @@
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ProgressCircle } from '@/components/ui/progress-circle';
+import { MonthCard } from '@/components/ui/month-card';
+import { formatMinutesToHours, getProgressPercentage } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { getQueryFn } from '@/lib/queryClient';
+import { 
+  Clock, 
+  HourglassIcon, 
+  UmbrellaIcon,
+  ChevronLeft,
+  ChevronRight,
+  Settings
+} from 'lucide-react';
+import { MonthlyReport, TimeEntry } from '@shared/schema';
+import { add, format, getMonth, getYear, parseISO, setMonth, setYear } from 'date-fns';
+import { uk } from 'date-fns/locale';
+
+interface StatisticsProps {
+  onExportClick: () => void;
+}
+
+export default function Statistics({ onExportClick }: StatisticsProps) {
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const year = getYear(selectedDate);
+  const month = getMonth(selectedDate) + 1;
+  
+  const { data: user, isLoading: isUserLoading } = useQuery({
+    queryKey: ['/api/user'],
+    queryFn: getQueryFn({ on401: 'returnNull' }),
+  });
+  
+  const { data: currentMonthReport, isLoading: isReportLoading } = useQuery({
+    queryKey: [`/api/monthly-reports/${year}/${month}`],
+    queryFn: getQueryFn({ on401: 'returnNull' }),
+    enabled: !!user,
+  });
+  
+  const { data: allMonthlyReports, isLoading: isAllReportsLoading } = useQuery({
+    queryKey: ['/api/monthly-reports'],
+    queryFn: getQueryFn({ on401: 'returnNull' }),
+    enabled: !!user,
+  });
+  
+  const { data: timeEntries, isLoading: isEntriesLoading } = useQuery({
+    queryKey: [`/api/time-entries/${year}/${month}`],
+    queryFn: getQueryFn({ on401: 'returnNull' }),
+    enabled: !!user,
+  });
+  
+  const calculateMinutes = (start: string, end: string): number => {
+    const [startHour, startMinute] = start.split(':').map(Number);
+    const [endHour, endMinute] = end.split(':').map(Number);
+    
+    return (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+  };
+  
+  const formatMinutes = (minutes: number): string => {
+    const hours = Math.floor(Math.abs(minutes) / 60);
+    const mins = Math.abs(minutes) % 60;
+    return `${hours}:${mins.toString().padStart(2, '0')}`;
+  };
+  
+  // Helper function for calculating the total payment for the month
+  const calculateTotalPayment = (): number => {
+    if (!timeEntries || !Array.isArray(timeEntries) || timeEntries.length === 0) return 0;
+    
+    return timeEntries.reduce((total, entry) => {
+      // Calculate total minutes worked for this entry
+      const totalMinutes = calculateMinutes(entry.startTime, entry.endTime);
+      const hours = totalMinutes / 60;
+      
+      // Calculate payment based on hourly rate
+      const hourlyRate = entry.hourlyRate || 0;
+      const payment = Math.round(hours * hourlyRate);
+      
+      return total + payment;
+    }, 0);
+  };
+  
+  const handlePreviousPeriod = () => {
+    setSelectedDate(prev => {
+      // Go to previous month
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+  
+  const handleNextPeriod = () => {
+    setSelectedDate(prev => {
+      // Go to next month
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  };
+  
+  const getDayOfWeek = (day: number): string => {
+    const days = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
+    return days[(day - 1) % 7];
+  };
+  
+  // Generate calendar rows for the current month
+  const generateCalendarRows = () => {
+    if (!timeEntries || !Array.isArray(timeEntries)) return [];
+    
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const rows = [];
+    
+    const workDays = user?.workDays?.split(',').map(Number) || [1, 2, 3, 4, 5];
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month - 1, day);
+      const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay(); // Convert Sunday from 0 to 7
+      const isWorkDay = workDays.includes(dayOfWeek);
+      
+      const entriesForDay = timeEntries.filter(entry => {
+        const entryDate = parseISO(entry.date);
+        return entryDate.getDate() === day;
+      });
+      
+      let startTime = '-';
+      let endTime = '-';
+      let hoursWorked = '-';
+      let payment = '-';
+      
+      if (entriesForDay.length > 0) {
+        const entry = entriesForDay[0];
+        startTime = entry.startTime;
+        endTime = entry.endTime;
+        
+        // Calculate total worked minutes
+        let totalMinutes = calculateMinutes(entry.startTime, entry.endTime);
+        hoursWorked = formatMinutes(totalMinutes);
+        
+        // Calculate payment based on hourly rate and worked time
+        const hourlyRate = entry.hourlyRate || 0;
+        const hours = totalMinutes / 60;
+        const paymentValue = Math.round(hours * hourlyRate);
+        payment = `${paymentValue} CZK`;
+      }
+      
+      rows.push({
+        day,
+        dayOfWeek: getDayOfWeek(dayOfWeek),
+        isWeekend: !isWorkDay,
+        startTime,
+        endTime,
+        hoursWorked,
+        payment
+      });
+    }
+    
+    return rows;
+  };
+  
+  // Sort reports in reverse chronological order
+  const sortedReports = allMonthlyReports && Array.isArray(allMonthlyReports)
+    ? [...allMonthlyReports]
+        .sort((a, b) => {
+          // Sort by year descending
+          if (a.year !== b.year) {
+            return b.year - a.year;
+          }
+          // Then by month descending
+          return b.month - a.month;
+        })
+        .filter(report => report.year !== year || report.month !== month) // Exclude current month
+    : [];
+  
+  const progressPercentage = currentMonthReport
+    ? getProgressPercentage(currentMonthReport.workedMinutes, currentMonthReport.targetMinutes)
+    : 0;
+  
+  const calendarRows = generateCalendarRows();
+  const formattedMonth = format(selectedDate, 'LLLL yyyy р.', { locale: uk });
+  
+  return (
+    <div className="pb-24">
+      {/* Period Selector */}
+      <div className="flex items-center justify-between bg-card px-4 py-3 border-b border-gray-700">
+        <button className="text-lg" onClick={handlePreviousPeriod}>
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <div className="flex items-center">
+          <h2 className="text-lg font-medium capitalize">{formattedMonth}</h2>
+          <button className="ml-2 text-muted-foreground">
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
+        <button className="text-lg" onClick={handleNextPeriod}>
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+      
+      {/* Month Summary */}
+      {isReportLoading ? (
+        <Card className="p-4 bg-card mx-4 mt-4">
+          <CardContent className="p-0">
+            <div className="h-32 flex items-center justify-center">
+              <p>Завантаження даних...</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : currentMonthReport && (
+        <Card className="bg-card mx-4 mt-4">
+          <CardContent className="p-4">
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center">
+                <Clock className="text-primary mr-3 h-5 w-5" />
+                <span>Відпрацьовані години</span>
+                <span className="ml-auto font-medium">
+                  {formatMinutesToHours(currentMonthReport.workedMinutes)} ч
+                </span>
+              </div>
+              
+              <div className="flex items-center mt-3">
+                <div className="text-primary mr-3 h-5 w-5">₴</div>
+                <span>Загальна оплата</span>
+                <span className="ml-auto font-medium">
+                  {calculateTotalPayment()} CZK
+                </span>
+              </div>
+              
+              <div className="mt-2 flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  <span>Робочі дні: {currentMonthReport.workDays} д</span>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <span>Робочі години: {formatMinutesToHours(currentMonthReport.targetMinutes)} ч</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Work Time Chart */}
+      <Card className="bg-card mx-4 mt-4">
+        <CardContent className="p-4">
+          <h3 className="text-lg font-medium mb-4">Статистика місяця</h3>
+          
+          <div className="flex justify-center mb-6">
+            <ProgressCircle percentage={progressPercentage} size={128} />
+          </div>
+          
+          {currentMonthReport && (
+            <div className="flex justify-between text-sm text-muted-foreground border-t border-gray-700 pt-3">
+              <span>Заведено: {calculateTotalPayment()} CZK</span>
+              <span>
+                {formatMinutesToHours(currentMonthReport.workedMinutes)} ч
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      {/* Calendar View */}
+      <div className="mt-4 mx-4 overflow-x-auto">
+        <table className="w-full bg-card rounded-lg shadow-lg">
+          <thead>
+            <tr className="text-muted-foreground border-b border-gray-700">
+              <th className="p-2 text-center w-10">Д</th>
+              <th className="p-2 text-center">Вхід</th>
+              <th className="p-2 text-center">Вихід</th>
+              <th className="p-2 text-center">Годин</th>
+              <th className="p-2 text-center">Оплата</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isEntriesLoading ? (
+              <tr>
+                <td colSpan={5} className="p-4 text-center">Завантаження даних...</td>
+              </tr>
+            ) : (
+              calendarRows.map(row => (
+                <tr 
+                  key={row.day} 
+                  className={`border-b border-gray-700 ${row.isWeekend ? 'bg-weekend/30' : ''}`}
+                >
+                  <td className="p-2 text-center">{row.day} {row.dayOfWeek}</td>
+                  <td className="p-2 text-center text-primary">{row.startTime}</td>
+                  <td className="p-2 text-center text-primary">{row.endTime}</td>
+                  <td className="p-2 text-center">{row.hoursWorked}</td>
+                  <td className="p-2 text-center text-success">{row.payment}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      
+      {/* Monthly Summary Cards */}
+      <div className="px-4 mt-6">
+        <h3 className="text-lg font-medium mb-3">Помісячний огляд</h3>
+        
+        {isAllReportsLoading ? (
+          <p className="text-center p-4">Завантаження даних...</p>
+        ) : (
+          sortedReports.map(report => (
+            <MonthCard key={`${report.year}-${report.month}`} report={report} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
