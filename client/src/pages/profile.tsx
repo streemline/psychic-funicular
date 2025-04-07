@@ -9,8 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest, getQueryFn } from '@/lib/queryClient';
 import { User } from '@shared/schema';
-import { UserIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import ProfileImageUpload from '@/components/profile/profile-image-upload';
+import ChangePasswordButton from '@/components/profile/change-password-button';
+import LogoutButton from '@/components/profile/logout-button';
 
 export default function Profile() {
   const { toast } = useToast();
@@ -101,9 +103,7 @@ export default function Profile() {
     <div className="px-4 py-6 pb-24">
       {/* Profile Header */}
       <div className="flex flex-col items-center mb-6">
-        <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center text-white text-3xl">
-          <UserIcon size={48} />
-        </div>
+        <ProfileImageUpload user={user} />
         <h2 className="text-xl font-medium mt-4">{user?.fullName || 'Користувач'}</h2>
         <p className="text-muted-foreground">{user?.position || 'Співробітник'}</p>
       </div>
@@ -294,6 +294,18 @@ export default function Profile() {
               >
                 {updateProfileMutation.isPending ? 'Збереження...' : 'Зберегти налаштування'}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Account Actions */}
+        <Card className="bg-card rounded-lg shadow-lg p-4 mb-4">
+          <CardContent className="p-0">
+            <h3 className="text-lg font-medium mb-4">Налаштування облікового запису</h3>
+            
+            <div className="space-y-4">
+              <ChangePasswordButton />
+              <LogoutButton />
             </div>
           </CardContent>
         </Card>

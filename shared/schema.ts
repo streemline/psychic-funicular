@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   email: text("email"),
   phone: text("phone"),
   position: text("position"),
+  profileImage: text("profile_image"),
   workHoursPerDay: integer("work_hours_per_day").notNull().default(8),
   breakMinutes: integer("break_minutes").notNull().default(60),
   autoBreak: boolean("auto_break").notNull().default(true),

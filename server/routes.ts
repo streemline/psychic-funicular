@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertTimeEntrySchema, insertMonthlyReportSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
+import { hashPassword, comparePasswords } from "./auth";
 
 const monthParamsSchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
@@ -37,6 +38,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (err) return res.status(500).json({ message: "Failed to update session" });
       return res.json(updatedUser);
     });
+  });
+  
+  // Change password route
+  app.patch("/api/user/password", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      // Get current user
+      const user = await storage.getUser(req.user!.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Verify current password
+      const isPasswordValid = await comparePasswords(currentPassword, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update user with new password
+      const updatedUser = await storage.updateUser(req.user!.id, {
+        password: hashedPassword
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update password" });
+      }
+      
+      return res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error('Error changing password:', error);
+      return res.status(500).json({ message: `Error changing password: ${error}` });
+    }
   });
 
   // Time entries routes
