@@ -1,6 +1,6 @@
 {
   "variant": "professional",
-  "primary": "#CB1744",
+  "primary": "oklch(345% 80 44)",
   "appearance": "dark",
   "radius": 0.5
 }

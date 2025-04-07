@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 import { getQueryFn } from '@/lib/queryClient';
 import { motion, AnimatePresence } from 'framer-motion';
+import { User } from '@shared/schema';
 
 interface AddEntryModalProps {
   open: boolean;
@@ -25,24 +27,37 @@ interface FormValues {
   endTime: string;
   hourlyRate: number; // Добавляем почасовую ставку
   notes: string;
+  didNotWork: boolean; // Добавляем флаг "Не вышел на работу"
 }
 
 export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentEntryDate, setCurrentEntryDate] = useState<string>('');
+  const [didNotWork, setDidNotWork] = useState(false);
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
       date: format(new Date(), 'yyyy-MM-dd'),
       startTime: '08:00',
       endTime: '18:00',
       hourlyRate: 190, // Значение по умолчанию для почасовой ставки в CZK
       notes: '',
+      didNotWork: false
     }
   });
   
-  const { data: user } = useQuery({
+  // Отслеживаем изменение флага "Не вышел на работу"
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name === 'didNotWork') {
+        setDidNotWork(!!value.didNotWork);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
+  
+  const { data: user } = useQuery<User>({
     queryKey: ['/api/user'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
   });
@@ -85,13 +100,14 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
     const formattedDate = `${data.date}T12:00:00.000Z`;
     setCurrentEntryDate(formattedDate);
     
+    // Если "Не вышел на работу", устанавливаем специальные значения
     const entryData = {
       userId: user.id,
       date: formattedDate, // Отправляем как строку в формате ISO, Zod преобразует на стороне сервера
-      startTime: data.startTime,
-      endTime: data.endTime,
-      hourlyRate: data.hourlyRate,
-      notes: data.notes,
+      startTime: data.didNotWork ? "00:00" : data.startTime,
+      endTime: data.didNotWork ? "00:00" : data.endTime,
+      hourlyRate: data.didNotWork ? 0 : data.hourlyRate,
+      notes: data.didNotWork ? "Nešel jsem do práce." : data.notes,
     };
     
     console.log('Отправка данных:', entryData);
@@ -152,18 +168,41 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
               initial="hidden"
               animate="visible"
               variants={formAnimation}
+              key="didNotWork-field"
+              className="flex items-center space-x-2"
+            >
+              <Checkbox 
+                id="didNotWork" 
+                checked={didNotWork}
+                onCheckedChange={(checked) => {
+                  setValue('didNotWork', checked === true);
+                  setDidNotWork(checked === true);
+                }}
+                {...register('didNotWork')}
+              />
+              <Label htmlFor="didNotWork" className="text-muted-foreground font-medium">
+                Не вышел на работу
+              </Label>
+            </motion.div>
+            
+            <motion.div
+              custom={2}
+              initial="hidden"
+              animate="visible"
+              variants={formAnimation}
               key="notes-field"
             >
               <Label htmlFor="notes" className="text-muted-foreground">Название акции</Label>
               <Textarea 
                 id="notes" 
                 className="bg-background border-input h-20 resize-none" 
+                disabled={didNotWork}
                 {...register('notes')} 
               />
             </motion.div>
             
             <motion.div
-              custom={2}
+              custom={3}
               initial="hidden"
               animate="visible"
               variants={formAnimation}
@@ -176,7 +215,8 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                   id="startTime" 
                   type="time" 
                   className="bg-background border-input" 
-                  {...register('startTime', { required: true })} 
+                  disabled={didNotWork}
+                  {...register('startTime', { required: !didNotWork })} 
                 />
               </div>
               <div>
@@ -185,13 +225,14 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                   id="endTime" 
                   type="time" 
                   className="bg-background border-input" 
-                  {...register('endTime', { required: true })} 
+                  disabled={didNotWork}
+                  {...register('endTime', { required: !didNotWork })} 
                 />
               </div>
             </motion.div>
             
             <motion.div
-              custom={3}
+              custom={4}
               initial="hidden"
               animate="visible"
               variants={formAnimation}
@@ -204,8 +245,9 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                 className="bg-background border-input" 
                 min="0"
                 step="10"
+                disabled={didNotWork}
                 {...register('hourlyRate', { 
-                  required: true,
+                  required: !didNotWork,
                   valueAsNumber: true, 
                   min: 0 
                 })} 
