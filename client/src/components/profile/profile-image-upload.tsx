@@ -34,15 +34,69 @@ export default function ProfileImageUpload({ user }: ProfileImageUploadProps) {
     }
   });
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Функция для сжатия изображения перед отправкой
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        
+        img.onload = () => {
+          // Максимальные размеры для фото профиля
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          
+          let width = img.width;
+          let height = img.height;
+          
+          // Уменьшаем размеры, сохраняя пропорции
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round(height * (MAX_WIDTH / width));
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round(width * (MAX_HEIGHT / height));
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Сжимаем в формат JPEG с качеством 0.8
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          resolve(compressedDataUrl);
+        };
+        
+        img.onerror = () => {
+          reject(new Error('Ошибка при загрузке изображения'));
+        };
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Ошибка при чтении файла'));
+      };
+    });
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Проверка размера файла (макс. 1MB)
-    if (file.size > 1024 * 1024) {
+    // Проверка размера файла (макс. 5MB)
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: 'Помилка',
-        description: 'Розмір файлу занадто великий. Максимум 1MB.',
+        description: 'Розмір файлу занадто великий. Максимум 5MB.',
         variant: 'destructive',
       });
       return;
@@ -58,13 +112,29 @@ export default function ProfileImageUpload({ user }: ProfileImageUploadProps) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      setPreviewUrl(dataUrl);
-      updateProfileImageMutation.mutate({ profileImage: dataUrl });
-    };
-    reader.readAsDataURL(file);
+    try {
+      // Показываем предварительный просмотр до завершения сжатия
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const originalDataUrl = e.target?.result as string;
+        setPreviewUrl(originalDataUrl);
+      };
+      reader.readAsDataURL(file);
+
+      // Сжимаем изображение
+      const compressedDataUrl = await compressImage(file);
+      
+      // Обновляем предварительный просмотр и отправляем на сервер
+      setPreviewUrl(compressedDataUrl);
+      updateProfileImageMutation.mutate({ profileImage: compressedDataUrl });
+    } catch (error) {
+      toast({
+        title: 'Помилка',
+        description: 'Помилка при обробці зображення',
+        variant: 'destructive',
+      });
+      console.error('Error processing image:', error);
+    }
   };
 
   const handleRemoveImage = () => {

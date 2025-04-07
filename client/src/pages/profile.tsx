@@ -76,7 +76,7 @@ export default function Profile() {
     <div className="px-4 py-6 pb-24">
       {/* Profile Header */}
       <div className="flex flex-col items-center mb-6">
-        <ProfileImageUpload user={user} />
+        <ProfileImageUpload user={user || null} />
         <h2 className="text-xl font-medium mt-4">{user?.fullName || 'Користувач'}</h2>
         <p className="text-muted-foreground">{user?.position || 'Співробітник'}</p>
       </div>
