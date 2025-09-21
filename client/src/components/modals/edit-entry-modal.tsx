@@ -12,6 +12,7 @@ import { format, parseISO } from 'date-fns';
 import { getQueryFn } from '@/lib/queryClient';
 import { motion } from 'framer-motion';
 import { type TimeEntry } from '@shared/schema';
+import { useTranslation } from 'react-i18next';
 
 interface EditEntryModalProps {
   open: boolean;
@@ -31,6 +32,7 @@ export default function EditEntryModal({ open, onClose, entryId }: EditEntryModa
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentEntryDate, setCurrentEntryDate] = useState<string>('');
+  const { t } = useTranslation();
   
   // Получаем данные записи, которую нужно отредактировать
   const { data: timeEntry, isLoading } = useQuery<TimeEntry>({
@@ -140,7 +142,7 @@ export default function EditEntryModal({ open, onClose, entryId }: EditEntryModa
             <DialogDescription className="sr-only">Загрузка данных записи</DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center py-8">
-            <p>Загрузка данных...</p>
+            <p>{t('loading_data')}</p>
           </div>
         </DialogContent>
       </Dialog>
@@ -156,9 +158,9 @@ export default function EditEntryModal({ open, onClose, entryId }: EditEntryModa
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <DialogTitle className="text-white">Редактировать запись</DialogTitle>
+            <DialogTitle className="text-white">{t('edit_entry')}</DialogTitle>
             <DialogDescription className="text-white/80 text-sm mt-1">
-              Изменение данных записи рабочего времени
+              {t('edit_entry_desc')}
             </DialogDescription>
           </motion.div>
         </DialogHeader>
@@ -171,7 +173,7 @@ export default function EditEntryModal({ open, onClose, entryId }: EditEntryModa
             variants={formAnimation}
             key="date-field"
           >
-            <Label htmlFor="date" className="text-muted-foreground">Дата</Label>
+            <Label htmlFor="date" className="text-muted-foreground">{t('date')}</Label>
             <Input 
               id="date" 
               type="date" 
@@ -187,7 +189,7 @@ export default function EditEntryModal({ open, onClose, entryId }: EditEntryModa
             variants={formAnimation}
             key="notes-field"
           >
-            <Label htmlFor="notes" className="text-muted-foreground">Название акции</Label>
+            <Label htmlFor="notes" className="text-muted-foreground">{t('action_name')}</Label>
             <Textarea 
               id="notes" 
               className="bg-background border-input h-20 resize-none" 
@@ -252,7 +254,7 @@ export default function EditEntryModal({ open, onClose, entryId }: EditEntryModa
           >
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-                Отменить
+                {t('cancel')}
               </Button>
               <motion.div
                 whileHover={{ scale: 1.03 }}

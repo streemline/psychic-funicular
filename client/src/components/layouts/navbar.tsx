@@ -9,6 +9,7 @@ import {
   Menu, 
   FileOutput
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface NavbarProps {
   activePage: string;
@@ -23,6 +24,8 @@ export default function Navbar({
   onAddEntry,
   onExport 
 }: NavbarProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       {/* Top Header */}
@@ -53,7 +56,7 @@ export default function Navbar({
           onClick={() => onNavigation('statistics')}
         >
           <BarChart3Icon className="h-6 w-6" />
-          <span className="text-xs mt-1">Статистика</span>
+          <span className="text-xs mt-1">{t('statistics')}</span>
         </button>
         
         <button 
@@ -63,7 +66,7 @@ export default function Navbar({
           <div className="bg-primary w-12 h-12 rounded-full flex items-center justify-center text-white -mt-6">
             <PlusIcon className="h-6 w-6" />
           </div>
-          <span className="text-xs mt-1">Додати</span>
+          <span className="text-xs mt-1">{t('add')}</span>
         </button>
         
         <button 
@@ -71,7 +74,7 @@ export default function Navbar({
           onClick={() => onNavigation('profile')}
         >
           <UserIcon className="h-6 w-6" />
-          <span className="text-xs mt-1">Профіль</span>
+          <span className="text-xs mt-1">{t('profile')}</span>
         </button>
       </nav>
     </>

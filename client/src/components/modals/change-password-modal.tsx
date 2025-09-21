@@ -9,6 +9,7 @@ import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -30,6 +31,7 @@ type PasswordFormValues = z.infer<typeof passwordSchema>;
 export default function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
   const { toast } = useToast();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const { t } = useTranslation();
   
   const { register, handleSubmit, reset, formState: { errors } } = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -71,15 +73,15 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="bg-card max-w-md mx-auto">
         <DialogHeader className="bg-primary -mx-6 -mt-6 px-6 py-3 mb-4">
-          <DialogTitle className="text-white">Зміна пароля</DialogTitle>
+          <DialogTitle className="text-white">{t('change_password')}</DialogTitle>
           <DialogDescription className="text-white/80 text-sm mt-1">
-            Введіть ваш поточний пароль і новий пароль для зміни
+            {t('change_password_desc')}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <Label htmlFor="currentPassword" className="text-muted-foreground">Поточний пароль</Label>
+            <Label htmlFor="currentPassword" className="text-muted-foreground">{t('current_password')}</Label>
             <div className="relative">
               <Input 
                 id="currentPassword" 
@@ -94,7 +96,7 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
           </div>
           
           <div>
-            <Label htmlFor="newPassword" className="text-muted-foreground">Новий пароль</Label>
+            <Label htmlFor="newPassword" className="text-muted-foreground">{t('new_password')}</Label>
             <div className="relative">
               <Input 
                 id="newPassword" 
@@ -109,7 +111,7 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
           </div>
           
           <div>
-            <Label htmlFor="confirmPassword" className="text-muted-foreground">Підтвердіть новий пароль</Label>
+            <Label htmlFor="confirmPassword" className="text-muted-foreground">{t('confirm_new_password')}</Label>
             <div className="relative">
               <Input 
                 id="confirmPassword" 
@@ -132,20 +134,20 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
               onChange={() => setIsPasswordVisible(!isPasswordVisible)}
             />
             <Label htmlFor="showPassword" className="text-sm font-normal">
-              Показати паролі
+              {t('show_passwords')}
             </Label>
           </div>
           
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-              Скасувати
+              {t('cancel')}
             </Button>
             <Button 
               type="submit" 
               className="flex-1 bg-primary hover:bg-primary-dark text-white"
               disabled={changePasswordMutation.isPending}
             >
-              {changePasswordMutation.isPending ? 'Збереження...' : 'Змінити пароль'}
+              {changePasswordMutation.isPending ? t('saving') : t('change_password')}
             </Button>
           </DialogFooter>
         </form>

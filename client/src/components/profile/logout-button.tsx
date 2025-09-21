@@ -5,10 +5,12 @@ import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { useTranslation } from 'react-i18next';
 
 export default function LogoutButton() {
   const { toast } = useToast();
   const { logoutMutation } = useAuth();
+  const { t } = useTranslation();
   
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -36,7 +38,7 @@ export default function LogoutButton() {
       onClick={handleLogout}
     >
       <LogOut size={16} />
-      <span>Вийти з системи</span>
+      <span>{t('logout')}</span>
     </Button>
   );
 }

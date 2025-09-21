@@ -93,8 +93,8 @@
 
 ```bash
 # Клонирование репозитория
-git clone https://github.com/johoyab975/TimeTrackPro.git
-cd time-tracking-system
+git clone https://github.com/streemline/psychic-funicular.git
+cd psychic-funicular
 
 # Установка зависимостей
 npm install
@@ -199,6 +199,12 @@ npm start
 ## База данных
 
 Проект использует PostgreSQL вместе с Drizzle ORM для управления данными. Основные таблицы:
+
+$env:PGUSER="postgres.krdsxnjbfdatzawcxsws"
+$env:PGPASSWORD="22Yakubets05"
+$env:PGDATABASE="postgres"
+$env:PGHOST="aws-0-eu-central-1.pooler.supabase.com"
+$env:PGPORT="6543"
 
 ### Users
 - Информация о пользователях системы

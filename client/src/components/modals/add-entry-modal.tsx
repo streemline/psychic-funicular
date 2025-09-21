@@ -15,6 +15,7 @@ import { uk } from 'date-fns/locale';
 import { getQueryFn } from '@/lib/queryClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User } from '@shared/schema';
+import { useTranslation } from 'react-i18next';
 
 interface AddEntryModalProps {
   open: boolean;
@@ -29,14 +30,17 @@ interface FormValues {
   notes: string;
   didNotWork: boolean; // Добавляем флаг "Не вышел на работу"
   dayOff: boolean; // Добавляем флаг "Выходной"
+  businessTrip: boolean; // Добавляем флаг "Cesta"
 }
 
 export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [currentEntryDate, setCurrentEntryDate] = useState<string>('');
   const [didNotWork, setDidNotWork] = useState(false);
   const [dayOff, setDayOff] = useState(false);
+  const [businessTrip, setBusinessTrip] = useState(false);
   
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
@@ -46,7 +50,8 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
       hourlyRate: 190, // Значение по умолчанию для почасовой ставки в CZK
       notes: '',
       didNotWork: false,
-      dayOff: false
+      dayOff: false,
+      businessTrip: false
     }
   });
   
@@ -55,23 +60,49 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
     const subscription = watch((value, { name }) => {
       if (name === 'didNotWork') {
         setDidNotWork(!!value.didNotWork);
-        // Если включили "Не вышел на работу", выключаем "Выходной"
-        if (!!value.didNotWork && dayOff) {
-          setValue('dayOff', false);
-          setDayOff(false);
+        // Если включили "Не вышел на работу", выключаем "Выходной" и "Cesta"
+        if (!!value.didNotWork) {
+          if (dayOff) {
+            setValue('dayOff', false);
+            setDayOff(false);
+          }
+          if (businessTrip) {
+            setValue('businessTrip', false);
+            setBusinessTrip(false);
+          }
         }
       }
       if (name === 'dayOff') {
         setDayOff(!!value.dayOff);
-        // Если включили "Выходной", выключаем "Не вышел на работу"
-        if (!!value.dayOff && didNotWork) {
-          setValue('didNotWork', false);
-          setDidNotWork(false);
+        // Если включили "Выходной", выключаем "Не вышел на работу" и "Cesta"
+        if (!!value.dayOff) {
+          if (didNotWork) {
+            setValue('didNotWork', false);
+            setDidNotWork(false);
+          }
+          if (businessTrip) {
+            setValue('businessTrip', false);
+            setBusinessTrip(false);
+          }
+        }
+      }
+      if (name === 'businessTrip') {
+        setBusinessTrip(!!value.businessTrip);
+        // Если включили "Cesta", выключаем "Не вышел на работу" и "Выходной"
+        if (!!value.businessTrip) {
+          if (didNotWork) {
+            setValue('didNotWork', false);
+            setDidNotWork(false);
+          }
+          if (dayOff) {
+            setValue('dayOff', false);
+            setDayOff(false);
+          }
         }
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, setValue, didNotWork, dayOff]);
+  }, [watch, setValue, didNotWork, dayOff, businessTrip]);
   
   const { data: user } = useQuery<User>({
     queryKey: ['/api/user'],
@@ -110,7 +141,9 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
   });
   
   const onSubmit = (data: FormValues) => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
     
     // Преобразуем строку даты в объект Date с полуднем, чтобы избежать проблем с часовым поясом
     const formattedDate = `${data.date}T12:00:00.000Z`;
@@ -132,6 +165,11 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
       endTimeValue = "00:00";
       hourlyRateValue = 0;
       notesValue = "Volný den";
+    } else if (data.businessTrip) {
+      startTimeValue = "00:00";
+      endTimeValue = "00:00";
+      hourlyRateValue = 0;
+      notesValue = "Cesta";
     }
     
     const entryData = {
@@ -172,9 +210,9 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <DialogTitle className="text-white">Додати новий запис</DialogTitle>
+            <DialogTitle className="text-white">{t('add_entry')}</DialogTitle>
             <DialogDescription className="text-white/80 text-sm mt-1">
-              Заповніть поля для створення нового запису робочого часу
+              {t('fill_fields')}
             </DialogDescription>
           </motion.div>
         </DialogHeader>
@@ -187,7 +225,7 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
               variants={formAnimation}
               key="date-field"
             >
-              <Label htmlFor="date" className="text-muted-foreground">Дата</Label>
+              <Label htmlFor="date" className="text-muted-foreground">{t('date')}</Label>
               <Input 
                 id="date" 
                 type="date" 
@@ -214,7 +252,7 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                 {...register('didNotWork')}
               />
               <Label htmlFor="didNotWork" className="text-muted-foreground font-medium">
-                Не вышел на работу
+                {t('did_not_work')}
               </Label>
             </motion.div>
             
@@ -236,7 +274,29 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                 {...register('dayOff')}
               />
               <Label htmlFor="dayOff" className="text-muted-foreground font-medium">
-                Выходной
+                {t('day_off')}
+              </Label>
+            </motion.div>
+            
+            <motion.div
+              custom={1.7}
+              initial="hidden"
+              animate="visible"
+              variants={formAnimation}
+              key="businessTrip-field"
+              className="flex items-center space-x-2"
+            >
+              <Checkbox 
+                id="businessTrip" 
+                checked={businessTrip}
+                onCheckedChange={(checked) => {
+                  setValue('businessTrip', checked === true);
+                  setBusinessTrip(checked === true);
+                }}
+                {...register('businessTrip')}
+              />
+              <Label htmlFor="businessTrip" className="text-muted-foreground font-medium">
+                {t('business_trip')}
               </Label>
             </motion.div>
             
@@ -247,11 +307,11 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
               variants={formAnimation}
               key="notes-field"
             >
-              <Label htmlFor="notes" className="text-muted-foreground">Название акции</Label>
+              <Label htmlFor="notes" className="text-muted-foreground">{t('action_name')}</Label>
               <Textarea 
                 id="notes" 
                 className="bg-background border-input h-20 resize-none" 
-                disabled={didNotWork || dayOff}
+                disabled={didNotWork || dayOff || businessTrip}
                 {...register('notes')} 
               />
             </motion.div>
@@ -265,23 +325,23 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
               key="time-fields"
             >
               <div>
-                <Label htmlFor="startTime" className="text-muted-foreground">Початок</Label>
+                <Label htmlFor="startTime" className="text-muted-foreground">{t('start')}</Label>
                 <Input 
                   id="startTime" 
                   type="time" 
                   className="bg-background border-input" 
-                  disabled={didNotWork || dayOff}
-                  {...register('startTime', { required: !didNotWork && !dayOff })} 
+                  disabled={didNotWork || dayOff || businessTrip}
+                  {...register('startTime', { required: !didNotWork && !dayOff && !businessTrip })} 
                 />
               </div>
               <div>
-                <Label htmlFor="endTime" className="text-muted-foreground">Кінець</Label>
+                <Label htmlFor="endTime" className="text-muted-foreground">{t('end')}</Label>
                 <Input 
                   id="endTime" 
                   type="time" 
                   className="bg-background border-input" 
-                  disabled={didNotWork || dayOff}
-                  {...register('endTime', { required: !didNotWork && !dayOff })} 
+                  disabled={didNotWork || dayOff || businessTrip}
+                  {...register('endTime', { required: !didNotWork && !dayOff && !businessTrip })} 
                 />
               </div>
             </motion.div>
@@ -293,16 +353,16 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
               variants={formAnimation}
               key="rate-field"
             >
-              <Label htmlFor="hourlyRate" className="text-muted-foreground">Ставка (CZK/год)</Label>
+              <Label htmlFor="hourlyRate" className="text-muted-foreground">{t('rate')}</Label>
               <Input 
                 id="hourlyRate" 
                 type="number" 
                 className="bg-background border-input" 
                 min="0"
                 step="10"
-                disabled={didNotWork || dayOff}
+                disabled={didNotWork || dayOff || businessTrip}
                 {...register('hourlyRate', { 
-                  required: !didNotWork && !dayOff,
+                  required: !didNotWork && !dayOff && !businessTrip,
                   valueAsNumber: true, 
                   min: 0 
                 })} 
@@ -316,7 +376,7 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
           >
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-                Скасувати
+                {t('cancel')}
               </Button>
               <motion.div
                 whileHover={{ scale: 1.03 }}
@@ -328,7 +388,7 @@ export default function AddEntryModal({ open, onClose }: AddEntryModalProps) {
                   className="w-full bg-primary hover:bg-primary-dark text-white"
                   disabled={addEntryMutation.isPending}
                 >
-                  {addEntryMutation.isPending ? 'Збереження...' : 'Зберегти'}
+                  {addEntryMutation.isPending ? t('saving') : t('save')}
                 </Button>
               </motion.div>
             </DialogFooter>

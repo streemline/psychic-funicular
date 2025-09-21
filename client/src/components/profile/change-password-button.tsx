@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Lock } from 'lucide-react';
 import ChangePasswordModal from '../modals/change-password-modal';
+import { useTranslation } from 'react-i18next';
 
 export default function ChangePasswordButton() {
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <>
@@ -15,7 +17,7 @@ export default function ChangePasswordButton() {
         onClick={() => setIsChangePasswordModalOpen(true)}
       >
         <Lock size={16} />
-        <span>Змінити пароль</span>
+        <span>{t('change_password')}</span>
       </Button>
       
       <ChangePasswordModal 

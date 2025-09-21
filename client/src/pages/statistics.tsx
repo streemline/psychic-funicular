@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from 'react-i18next';
 
 export default function Statistics() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -46,6 +47,7 @@ export default function Statistics() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const year = getYear(selectedDate);
   const month = getMonth(selectedDate) + 1;
@@ -122,7 +124,7 @@ export default function Statistics() {
   };
   
   const getDayOfWeek = (day: number): string => {
-    const days = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
+    const days = [t('mon_short'), t('tue_short'), t('wed_short'), t('thu_short'), t('fri_short'), t('sat_short'), t('sun_short')];
     return days[(day - 1) % 7];
   };
   
@@ -131,8 +133,8 @@ export default function Statistics() {
     mutationFn: (entryId: number) => apiRequest('DELETE', `/api/time-entries/${entryId}`),
     onSuccess: () => {
       toast({
-        title: 'Запись удалена',
-        description: 'Запись о рабочем времени успешно удалена',
+        title: t('entry_deleted'),
+        description: t('entry_deleted_desc'),
       });
       
       // Обновляем данные
@@ -145,8 +147,8 @@ export default function Statistics() {
     },
     onError: (error) => {
       toast({
-        title: 'Ошибка',
-        description: `Не удалось удалить запись: ${error}`,
+        title: t('error'),
+        description: t('delete_entry_error', { error }),
         variant: 'destructive',
       });
     }

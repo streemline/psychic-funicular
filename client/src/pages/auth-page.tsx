@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const { t } = useTranslation();
 
   // Форма входа
   const loginForm = useForm<LoginFormValues>({
@@ -104,14 +106,14 @@ export default function AuthPage() {
         >
           <div className="text-center mb-8">
             <img src="/src/assets/logo_w.png" alt="GENDAI Logo" className="h-12 mx-auto mb-4" />
-            <h1 className="text-2xl font-semibold text-white mb-2">Učtování pracovních hodin</h1>
-            <p className="text-muted-foreground">Войдите в систему или создайте новый аккаунт</p>
+            <h1 className="text-2xl font-semibold text-white mb-2">{t('auth_title')}</h1>
+            <p className="text-muted-foreground">{t('auth_subtitle')}</p>
           </div>
 
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Вход</TabsTrigger>
-              <TabsTrigger value="register">Регистрация</TabsTrigger>
+              <TabsTrigger value="login">{t('login')}</TabsTrigger>
+              <TabsTrigger value="register">{t('register')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="mt-4">
@@ -122,9 +124,9 @@ export default function AuthPage() {
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Имя пользователя</FormLabel>
+                        <FormLabel>{t('username')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Введите имя пользователя" {...field} />
+                          <Input placeholder={t('username_placeholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -136,9 +138,9 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Пароль</FormLabel>
+                        <FormLabel>{t('password')}</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Введите пароль" {...field} />
+                          <Input type="password" placeholder={t('password_placeholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -150,7 +152,7 @@ export default function AuthPage() {
                     className="w-full" 
                     disabled={loginMutation.isPending}
                   >
-                    {loginMutation.isPending ? 'Входим...' : 'Войти'}
+                    {loginMutation.isPending ? t('logging_in') : t('login')}
                   </Button>
                 </form>
               </Form>
@@ -164,9 +166,9 @@ export default function AuthPage() {
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Имя пользователя</FormLabel>
+                        <FormLabel>{t('username')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Введите имя пользователя" {...field} />
+                          <Input placeholder={t('username_placeholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -178,9 +180,9 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Пароль</FormLabel>
+                        <FormLabel>{t('password')}</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Введите пароль" {...field} />
+                          <Input type="password" placeholder={t('password_placeholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -192,9 +194,9 @@ export default function AuthPage() {
                     name="fullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Полное имя</FormLabel>
+                        <FormLabel>{t('full_name')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Иван Иванов" {...field} />
+                          <Input placeholder={t('full_name_placeholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -1,10 +1,11 @@
 import { TimeEntry, MonthlyReport, User } from '@shared/schema';
-import { formatDateToUkrainian, getMonthName } from './dates';
+import { formatDateToUkrainian, getMonthName, getDayOfWeekName } from './dates';
 import { formatMinutesToHours, secondsToHMS } from './time';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 // Импортируем jspdf-autotable
 import 'jspdf-autotable';
+import i18next from 'i18next';
 
 interface ExportOptions {
   includeProfile: boolean;
@@ -38,31 +39,32 @@ export async function generatePdfExport(
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
+    const t = i18next.t.bind(i18next);
     
     // Заголовок и информация о профиле
     doc.setFontSize(18);
-    doc.text('Výkaz práce', pageWidth / 2, 15, { align: 'center' });
+    doc.text(t('export.title'), pageWidth / 2, 15, { align: 'center' });
     
     doc.setFontSize(11);
     const year = monthlyReport.year;
     const month = getMonthName(monthlyReport.month);
-    doc.text(`${month} ${year}`, pageWidth / 2, 23, { align: 'center' });
+    doc.text(t('export.monthYear', { month, year }), pageWidth / 2, 23, { align: 'center' });
     
     let yPos = 35;
     
     // Информация о профиле
     if (options.includeProfile && user) {
       doc.setFontSize(10);
-      doc.text(`Jméno: ${user.fullName || ''}`, 15, yPos);
+      doc.text(`${t('export.profile.name')}: ${user.fullName || ''}`, 15, yPos);
       yPos += 7;
-      doc.text(`Pozice: ${user.position || ''}`, 15, yPos);
+      doc.text(`${t('export.profile.position')}: ${user.position || ''}`, 15, yPos);
       yPos += 7;
-      doc.text(`Kontakt: ${user.email || ''}`, 15, yPos);
+      doc.text(`${t('export.profile.contact')}: ${user.email || ''}`, 15, yPos);
       yPos += 10;
     }
     
     // Заголовки таблицы
-    const headers = ['Datum', 'Název akce', 'Od', 'Do', 'Hodiny', 'Sazba', 'Částka'];
+    const headers = t('export.tableHeaders', { returnObjects: true }) as string[];
     const colWidths = [22, 50, 18, 18, 17, 25, 25]; // Определяем ширину каждой колонки
     const tableWidth = colWidths.reduce((a, b) => a + b, 0);
     const tableX = (pageWidth - tableWidth) / 2;
@@ -141,23 +143,23 @@ export async function generatePdfExport(
     yPos += 10;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('Souhrn:', 15, yPos);
+    doc.text(t('export.summary'), 15, yPos);
     yPos += 7;
     
     doc.setFont('helvetica', 'normal');
-    doc.text(`Celkem odpracováno: ${formatMinutesToHours(monthlyReport.workedMinutes)} hodin`, 15, yPos);
+    doc.text(t('export.totalWorked', { hours: formatMinutesToHours(monthlyReport.workedMinutes) }), 15, yPos);
     yPos += 7;
     
-    doc.text(`Celková částka: ${totalPayment} CZK`, 15, yPos);
+    doc.text(t('export.totalPayment', { amount: totalPayment }), 15, yPos);
     yPos += 7;
     
-    doc.text(`Počet pracovních dnů: ${monthlyReport.workDays}`, 15, yPos);
+    doc.text(t('export.workDays', { count: monthlyReport.workDays }), 15, yPos);
     yPos += 14;
     
     // Подпись и дата
     const today = new Date();
-    doc.text(`Datum: ${formatDate(today)}`, 15, yPos);
-    doc.text('Podpis:', 100, yPos);
+    doc.text(t('export.date', { date: formatDate(today) }), 15, yPos);
+    doc.text(t('export.signature'), 100, yPos);
     
     // Возвращаем PDF как Blob
     const pdfOutput = doc.output('arraybuffer');
@@ -186,21 +188,16 @@ export async function generateExcelExport(
   monthlyReport: MonthlyReport,
   options: ExportOptions
 ): Promise<Blob> {
-  // Создаем новую книгу Excel
+  const t = i18next.t.bind(i18next);
   const workbook = XLSX.utils.book_new();
-  
-  // Подготавливаем заголовки и данные для отработанного времени
-  const headers = ['Datum', 'Název akce', 'Od', 'Do', 'Hodiny', 'Sazba', 'Částka'];
-  
+
+  const headers = t('export.tableHeaders', { returnObjects: true }) as string[];
+
   const data = entries.map(entry => {
-    // Вычисляем общее кол-во отработанных часов
     const totalMinutes = calculateMinutes(entry.startTime, entry.endTime);
     const hoursWorked = (totalMinutes / 60).toFixed(2);
-    
-    // Вычисляем оплату
     const hourlyRate = entry.hourlyRate || 0;
     const payment = Math.round(totalMinutes / 60 * hourlyRate);
-    
     return [
       formatDate(entry.date),
       entry.notes || '',
@@ -211,64 +208,49 @@ export async function generateExcelExport(
       `${payment} CZK`,
     ];
   });
-  
-  // Добавляем заголовок и информацию о пользователе
+
   const titleRows = [
-    ['Výkaz práce'],
-    [`${getMonthName(monthlyReport.month)} ${monthlyReport.year}`],
+    [t('export.title')],
+    [t('export.monthYear', { month: getMonthName(monthlyReport.month), year: monthlyReport.year })],
     [],
   ];
-  
-  // Если включена опция профиля, добавляем информацию о пользователе
+
   if (options.includeProfile && user) {
     titleRows.push(
-      ['Jméno:', user.fullName || ''],
-      ['Pozice:', user.position || ''],
-      ['Kontakt:', user.email || ''],
+      [t('export.profile.name') + ':', user.fullName || ''],
+      [t('export.profile.position') + ':', user.position || ''],
+      [t('export.profile.contact') + ':', user.email || ''],
       []
     );
   }
-  
-  // Соединяем все данные для листа
+
   const wsData = [
     ...titleRows,
     headers,
     ...data,
     [],
-    ['Souhrn:'],
-    ['Celkem odpracováno:', `${formatMinutesToHours(monthlyReport.workedMinutes)} hodin`],
-    ['Celková částka:', calculateTotalPayment(entries) + ' CZK'],
-    ['Počet pracovních dnů:', monthlyReport.workDays.toString()],
+    [t('export.summary')],
+    [t('export.totalWorked', { hours: formatMinutesToHours(monthlyReport.workedMinutes) })],
+    [t('export.totalPayment', { amount: calculateTotalPayment(entries) })],
+    [t('export.workDays', { count: monthlyReport.workDays })],
     [],
-    [`Datum: ${formatDate(new Date())}`],
-    ['Podpis:']
+    [t('export.date', { date: formatDate(new Date()) })],
+    [t('export.signature')]
   ];
-  
-  // Создаем рабочий лист и добавляем его в книгу
+
   const worksheet = XLSX.utils.aoa_to_sheet(wsData);
-  
-  // Настройка стилей (в XLSX библиотеке ограниченные возможности для стилей)
-  // Можно только установить свойства ячеек
-  
-  // Устанавливаем ширину столбцов
   const colWidths = [
-    { wch: 12 }, // Datum
-    { wch: 30 }, // Název akce
-    { wch: 10 }, // Od
-    { wch: 10 }, // Do
-    { wch: 10 }, // Hodiny
-    { wch: 12 }, // Sazba
-    { wch: 12 }, // Částka
+    { wch: 12 },
+    { wch: 30 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 12 },
+    { wch: 12 },
   ];
-  
   worksheet['!cols'] = colWidths;
-  
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Výkaz práce');
-  
-  // Преобразуем книгу в бинарные данные
+  XLSX.utils.book_append_sheet(workbook, worksheet, t('export.title'));
   const excelOutput = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  
-  // Возвращаем как Blob
   return new Blob([excelOutput], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
@@ -292,38 +274,27 @@ export async function generateCsvExport(
   monthlyReport: MonthlyReport,
   options: ExportOptions
 ): Promise<Blob> {
+  const t = i18next.t.bind(i18next);
   let csvContent = 'sep=,\n';
-  
-  // Add headers
-  csvContent += 'Дата,День тижня,Початок,Кінець,Перерва,Відпрацьовано,Примітки\n';
-  
-  // Add data
+  csvContent += t('export.csvHeaders', { joinArrays: ',', defaultValue: 'Дата,День недели,Начало,Конец,Перерыв,Отработано,Примечания' }) + '\n';
   entries.forEach(entry => {
     const date = new Date(entry.date);
-    const formattedDate = date.toLocaleDateString('uk-UA');
-    const dayOfWeek = date.toLocaleDateString('uk-UA', { weekday: 'short' });
-    
-    // Мы не храним информацию о перерывах в нашей модели данных, поэтому breakTime всегда будет пустым
+    const formattedDate = date.toLocaleDateString();
+    const dayOfWeek = getDayOfWeekName(date.getDay() === 0 ? 7 : date.getDay());
     const breakTime = '';
-    
     csvContent += `${formattedDate},${dayOfWeek},${entry.startTime},${entry.endTime},${breakTime},"${entry.notes || ''}"\n`;
   });
-  
-  // Add summary
-  csvContent += '\nЗведення\n';
-  csvContent += `Місяць,${getMonthName(monthlyReport.month)} ${monthlyReport.year}\n`;
-  csvContent += `Робочі дні,${monthlyReport.workDays}\n`;
-  csvContent += `Відпрацьовано,${formatMinutesToHours(monthlyReport.workedMinutes)}\n`;
-  csvContent += `Понаднормові,${formatMinutesToHours(monthlyReport.overtimeMinutes)}\n`;
-  csvContent += `Відпустка,${monthlyReport.vacationDays} днів\n`;
-  
+  csvContent += `\n${t('export.summary')}\n`;
+  csvContent += `${t('export.monthYear', { month: getMonthName(monthlyReport.month), year: monthlyReport.year })}\n`;
+  csvContent += `${t('export.workDays', { count: monthlyReport.workDays })}\n`;
+  csvContent += `${t('export.totalWorked', { hours: formatMinutesToHours(monthlyReport.workedMinutes) })}\n`;
+  csvContent += `${t('export.totalPayment', { amount: calculateTotalPayment(entries) })}\n`;
   if (options.includeProfile && user) {
-    csvContent += '\nІнформація профілю\n';
-    csvContent += `Ім'я,${user.fullName}\n`;
-    csvContent += `Посада,${user.position || ''}\n`;
-    csvContent += `Контакт,${user.email || ''}\n`;
+    csvContent += `\n${t('export.profileInfo')}\n`;
+    csvContent += `${t('export.profile.name')},${user.fullName}\n`;
+    csvContent += `${t('export.profile.position')},${user.position || ''}\n`;
+    csvContent += `${t('export.profile.contact')},${user.email || ''}\n`;
   }
-  
   return new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
 }
 

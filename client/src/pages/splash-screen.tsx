@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export default function SplashScreen() {
   const [, setLocation] = useLocation();
   const [showContent, setShowContent] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Показываем контент с небольшой задержкой для плавности
@@ -47,7 +49,7 @@ export default function SplashScreen() {
             className="text-center"
           >
             <h1 className="text-xl md:text-2xl font-medium mt-4 mb-8 text-white">
-              Účtování pracovních hodin
+              {t('splash_title')}
             </h1>
           </motion.div>
         )}
@@ -68,7 +70,7 @@ export default function SplashScreen() {
         transition={{ delay: 0.8, duration: 0.5 }}
         className="absolute bottom-4 text-center text-sm text-white/70"
       >
-        © 2025 GENDAI, s.r.o. | Developed by Mykola Yakubets
+        © 2025 GENDAI, s.r.o. | {t('developed_by')}
       </motion.footer>
     </div>
   );

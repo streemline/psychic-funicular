@@ -11,10 +11,14 @@ import { User } from '@shared/schema';
 import ProfileImageUpload from '@/components/profile/profile-image-upload';
 import ChangePasswordButton from '@/components/profile/change-password-button';
 import LogoutButton from '@/components/profile/logout-button';
+import LanguageSwitcher from '@/components/profile/language-switcher';
+import { useTranslation } from 'react-i18next';
+import { UserCircle } from 'lucide-react';
 
 export default function Profile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ['/api/user'],
@@ -72,11 +76,20 @@ export default function Profile() {
   
   return (
     <div className="px-4 py-6 pb-24">
+      <LanguageSwitcher />
       {/* Profile Header */}
       <div className="flex flex-col items-center mb-6">
-        <ProfileImageUpload user={user || null} />
-        <h2 className="text-xl font-medium mt-4">{user?.fullName || 'Користувач'}</h2>
-        <p className="text-muted-foreground">{user?.position || 'Співробітник'}</p>
+        <div className="w-24 h-24 rounded-full bg-gray-200 mb-2 overflow-hidden">
+          {user?.profileImage ? (
+            <img src={user.profileImage} alt={t('profile_image_alt')} className="w-full h-full object-cover" />
+          ) : (
+            <UserCircle className="w-full h-full text-gray-400" />
+          )}
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">{user?.fullName}</h2>
+        <p className="text-gray-500 text-sm mb-2">{user?.email}</p>
+        <p className="text-gray-500 text-sm mb-2">{user?.position}</p>
+        <span className="text-xs text-muted-foreground">{t('profile_note')}</span>
       </div>
       
       <form onSubmit={handleSubmit(onSubmit)}>

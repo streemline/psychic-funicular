@@ -1,27 +1,24 @@
 import { format, addMonths, subMonths, getYear, getMonth, getDaysInMonth, isWeekend } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import i18next from 'i18next';
 
 export function formatDateToUkrainian(date: Date): string {
   return format(date, 'LLLL yyyy р.', { locale: uk });
 }
 
 export function getMonthName(month: number): string {
-  const monthNames = [
-    'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
-    'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'
-  ];
-  
-  return monthNames[month - 1];
+  // month: 1-12
+  return i18next.t(`dates.months.${month - 1}`);
 }
 
 export function getDayOfWeekName(dayNumber: number): string {
-  const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
-  return dayNames[(dayNumber - 1) % 7];
+  // dayNumber: 1-7 (Пн-Нд)
+  return i18next.t(`dates.days.${(dayNumber - 1) % 7}`);
 }
 
 export function getDayOfWeekAbbr(dayNumber: number): string {
-  const dayNames = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
-  return dayNames[(dayNumber - 1) % 7];
+  // dayNumber: 1-7 (пн-нд)
+  return i18next.t(`dates.daysShort.${(dayNumber - 1) % 7}`);
 }
 
 export function nextMonth(date: Date): Date {

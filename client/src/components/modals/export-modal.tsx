@@ -11,6 +11,7 @@ import { uk } from 'date-fns/locale';
 import { exportTimeTracking } from '@/utils/export';
 import { TimeEntry, MonthlyReport, User } from '@shared/schema';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface ExportModalProps {
   open: boolean;
@@ -44,6 +45,8 @@ export default function ExportModal({
     includeActions: false,
   });
   
+  const { t } = useTranslation();
+  
   const handleOptionChange = (option: keyof typeof options) => {
     setOptions(prev => ({
       ...prev,
@@ -64,17 +67,17 @@ export default function ExportModal({
       );
       
       toast({
-        title: 'Експорт завершено',
-        description: `Файл ${filename}.${fileFormat} був успішно згенерований`
+        title: t('export_done'),
+        description: t('export_done_desc', { filename, fileFormat }),
       });
       
       onClose();
     } catch (error) {
       console.error('Ошибка при экспорте:', error);
       toast({
-        title: 'Помилка експорту',
-        description: `Не вдалося створити файл експорту: ${error instanceof Error ? error.message : 'Невідома помилка'}`,
-        variant: 'destructive'
+        title: t('export_error'),
+        description: t('export_error_desc', { error }),
+        variant: 'destructive',
       });
     } finally {
       setIsExporting(false);
@@ -102,9 +105,9 @@ export default function ExportModal({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <DialogTitle className="text-white">Експорт даних</DialogTitle>
+            <DialogTitle className="text-white">{t('export_data')}</DialogTitle>
             <DialogDescription className="text-white/80 text-sm mt-1">
-              Експорт робочого часу у формат файлу на вибір
+              {t('export_desc')}
             </DialogDescription>
           </motion.div>
         </DialogHeader>
@@ -116,13 +119,13 @@ export default function ExportModal({
             animate="visible"
             variants={formAnimation}
           >
-            <Label htmlFor="fileFormat" className="text-muted-foreground">Формат файлу</Label>
+            <Label htmlFor="fileFormat" className="text-muted-foreground">{t('file_format')}</Label>
             <Select 
               value={fileFormat} 
               onValueChange={(value) => setFileFormat(value as 'pdf' | 'excel' | 'csv')}
             >
               <SelectTrigger className="bg-background border-input">
-                <SelectValue placeholder="Оберіть формат файлу" />
+                <SelectValue placeholder={t('choose_file_format')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="pdf">PDF</SelectItem>
@@ -138,7 +141,7 @@ export default function ExportModal({
             animate="visible"
             variants={formAnimation}
           >
-            <Label htmlFor="filename" className="text-muted-foreground">Ім'я файлу</Label>
+            <Label htmlFor="filename" className="text-muted-foreground">{t('file_name')}</Label>
             <Input 
               id="filename" 
               type="text" 
@@ -156,7 +159,7 @@ export default function ExportModal({
             className="space-y-2"
           >
             <div className="flex items-center justify-between">
-              <Label htmlFor="includeProfile">Включити інформацію профілю</Label>
+              <Label htmlFor="includeProfile">{t('include_profile')}</Label>
               <Switch 
                 id="includeProfile" 
                 checked={options.includeProfile}
@@ -165,7 +168,7 @@ export default function ExportModal({
             </div>
             
             <div className="flex items-center justify-between">
-              <Label htmlFor="includeNotes">Включити примітки</Label>
+              <Label htmlFor="includeNotes">{t('include_notes')}</Label>
               <Switch 
                 id="includeNotes" 
                 checked={options.includeNotes}
@@ -174,7 +177,7 @@ export default function ExportModal({
             </div>
             
             <div className="flex items-center justify-between">
-              <Label htmlFor="includeSalary">Включити заробітну плату</Label>
+              <Label htmlFor="includeSalary">{t('include_salary')}</Label>
               <Switch 
                 id="includeSalary" 
                 checked={options.includeSalary}
@@ -183,7 +186,7 @@ export default function ExportModal({
             </div>
             
             <div className="flex items-center justify-between">
-              <Label htmlFor="includeProjects">Включити проекти</Label>
+              <Label htmlFor="includeProjects">{t('include_projects')}</Label>
               <Switch 
                 id="includeProjects" 
                 checked={options.includeProjects}
@@ -192,7 +195,7 @@ export default function ExportModal({
             </div>
             
             <div className="flex items-center justify-between">
-              <Label htmlFor="includeActions">Включити дії</Label>
+              <Label htmlFor="includeActions">{t('include_actions')}</Label>
               <Switch 
                 id="includeActions" 
                 checked={options.includeActions}
